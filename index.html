@@ -3,7 +3,7 @@
  <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ranking Pembaca Al-Quran - SMKN 5 Samarinda</title>
+  <title>Gerakan Membaca Al-Quran - SMKN 5 Samarinda</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="/_sdk/element_sdk.js"></script>
   <script src="/_sdk/data_sdk.js"></script>
@@ -48,7 +48,7 @@
     <div class="relative max-w-6xl mx-auto px-4 py-8 text-center">
      <div class="mb-4"><span class="font-arabic text-4xl md:text-5xl text-white opacity-90">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</span>
      </div>
-     <h1 id="app-title" class="text-2xl md:text-4xl font-bold text-white mb-2">Ranking Pembaca Al-Quran</h1>
+     <h1 id="app-title" class="text-2xl md:text-4xl font-bold text-white mb-2">Gerakan Membaca Al-Quran</h1>
      <p id="school-name" class="text-lg md:text-xl text-emerald-100 font-medium">SMKN 5 Samarinda</p>
      <p id="subtitle" class="text-sm md:text-base text-emerald-200 mt-1">Program Literasi Al-Quran</p>
     </div>
@@ -90,6 +90,31 @@
     </div>
    </div><!-- Main Content -->
    <main class="max-w-6xl mx-auto px-4 py-8">
+    <main class="max-w-6xl mx-auto px-4 py-8">
+
+  <!-- Tombol Cara Pengisian (LETAAKKAN DI SINI) -->
+  <div class="mb-6">
+    <button 
+      onclick="togglePanduan()" 
+      class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition duration-300">
+      📖 Cara Pengisian
+    </button>
+
+    <div id="panduanPengisian" 
+         class="hidden mt-3 bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-gray-700 transition-all duration-300"> 
+         <h3 class="text-lg md:text-xl font-bold text-emerald-700 mb-2">
+  📖 Panduan Pengisian
+</h3>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>Isi <b>Jumlah Juz</b> sesuai juz terakhir yang sedang dibaca.</li>
+        <li>Isi <b>Jumlah Halaman</b> sesuai halaman terakhir yang sedang dibaca.</li>
+        <li>Contoh: Jika saat ini membaca <b>Juz 5 halaman 81</b>, maka:</li>
+        <li class="ml-4">→ Jumlah Juz: <b>5</b></li>
+        <li class="ml-4">→ Jumlah Halaman: <b>81</b></li>
+        <li>Nomor halaman bersifat <b>berlanjut (1–604)</b>.</li>
+      </ul>
+    </div>
+  </div>
     <div class="grid lg:grid-cols-3 gap-6"><!-- Form Input -->
      <div class="lg:col-span-1">
       <div class="glass-card rounded-2xl shadow-xl border border-emerald-100 overflow-hidden">
@@ -220,6 +245,35 @@
         <option value="XII MPLB 2">XII MPLB 3</option>
     </select>
 
+    
+
+
+</div>
+
+<div class="glass-card rounded-2xl shadow-xl border border-emerald-100 mt-4 p-4">
+  <h3 class="font-semibold text-gray-700 mb-3">Filter Angkatan</h3>
+
+  <div class="grid grid-cols-3 gap-2">
+    <button onclick="filterByAngkatan('X')" 
+      class="py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium">
+      Kelas X
+    </button>
+
+    <button onclick="filterByAngkatan('XI')" 
+      class="py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium">
+      Kelas XI
+    </button>
+
+    <button onclick="filterByAngkatan('XII')" 
+      class="py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium">
+      Kelas XII
+    </button>
+  </div>
+
+  <button onclick="filterByAngkatan('')" 
+    class="mt-3 w-full py-2 rounded-lg bg-gray-200 text-gray-700 text-sm">
+    Tampilkan Semua
+  </button>
 </div>
 
      </div><!-- Ranking Table -->
@@ -347,6 +401,8 @@
     let deleteRecord = null;
     let currentRecordCount = 0;
     let isLoading = false;
+    let currentPage = 1;
+    const itemsPerPage = 5;
 
     // DOM Elements
     const form = document.getElementById('add-form');
@@ -447,51 +503,69 @@
 
     // Render table
     function renderTable() {
-      const sorted = [...filteredData].sort((a, b) => {
-        if (b.jumlah_juz !== a.jumlah_juz) return b.jumlah_juz - a.jumlah_juz;
-        return b.jumlah_halaman - a.jumlah_halaman;
-      });
+  const sorted = [...filteredData].sort((a, b) => {
+    if (b.jumlah_juz !== a.jumlah_juz) return b.jumlah_juz - a.jumlah_juz;
+    return b.jumlah_halaman - a.jumlah_halaman;
+  });
 
-      if (sorted.length === 0) {
-        rankingTable.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-      }
+  if (sorted.length === 0) {
+    rankingTable.innerHTML = '';
+    emptyState.classList.remove('hidden');
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
 
-      emptyState.classList.add('hidden');
+  emptyState.classList.add('hidden');
 
-      // Create a map of existing rows
-      const existingRows = new Map();
-      [...rankingTable.children].forEach(row => {
-        existingRows.set(row.dataset.id, row);
-      });
+  // Pagination logic
+  const totalPages = Math.ceil(sorted.length / itemsPerPage);
+  if (currentPage > totalPages) currentPage = 1;
 
-      // Update or create rows
-      sorted.forEach((item, index) => {
-        const rank = index + 1;
-        const rowId = item.__backendId;
-        let row = existingRows.get(rowId);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = sorted.slice(startIndex, endIndex);
 
-        if (row) {
-          updateRow(row, item, rank);
-          existingRows.delete(rowId);
-        } else {
-          row = createRow(item, rank);
-          rankingTable.appendChild(row);
-        }
-      });
+  rankingTable.innerHTML = '';
 
-      // Remove deleted rows
-      existingRows.forEach(row => row.remove());
+  paginatedData.forEach((item, index) => {
+    const globalRank = startIndex + index + 1;
+    const row = createRow(item, globalRank);
+    rankingTable.appendChild(row);
+  });
 
-      // Reorder rows
-      sorted.forEach((item, index) => {
-        const row = rankingTable.querySelector(`[data-id="${item.__backendId}"]`);
-        if (row && row !== rankingTable.children[index]) {
-          rankingTable.insertBefore(row, rankingTable.children[index]);
-        }
-      });
-    }
+  renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+  let paginationContainer = document.getElementById('pagination');
+
+  if (!paginationContainer) {
+    paginationContainer = document.createElement('div');
+    paginationContainer.id = 'pagination';
+    paginationContainer.className = 'p-4 flex justify-center gap-2 border-t';
+    rankingTable.parentElement.parentElement.appendChild(paginationContainer);
+  }
+
+  paginationContainer.innerHTML = '';
+
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i;
+    btn.className = `px-3 py-1 rounded-md text-sm ${
+      i === currentPage
+        ? 'bg-emerald-600 text-white'
+        : 'bg-gray-200 text-gray-700'
+    }`;
+
+    btn.onclick = () => {
+      currentPage = i;
+      renderTable();
+    };
+
+    paginationContainer.appendChild(btn);
+  }
+}
+
 
     // Create table row
     function createRow(item, rank) {
@@ -547,17 +621,37 @@
     }
 
     // Filter data
-    function applyFilter() {
-      const filterValue = filterKelas.value;
-      if (filterValue) {
-        filteredData = allData.filter(d => d.kelas === filterValue);
-      } else {
-        filteredData = [...allData];
-      }
-      updateStats();
-      updatePodium();
-      renderTable();
-    }
+    function filterByAngkatan(angkatan) {
+  if (!angkatan) {
+    filteredData = [...allData];
+  } else {
+    filteredData = allData.filter(d => 
+      d.kelas.startsWith(angkatan)
+    );
+  }
+    currentPage = 1;
+
+  updateStats();
+  updatePodium();
+  renderTable();
+}
+
+
+ function applyFilter() {
+  const filterValue = filterKelas.value;
+
+  if (filterValue) {
+    filteredData = allData.filter(d => d.kelas === filterValue);
+  } else {
+    filteredData = [...allData];
+  }
+
+  currentPage = 1; // reset ke halaman pertama
+  updateStats();
+  updatePodium();
+  renderTable();
+}
+
 
     // Edit record
     window.editRecord = function(id) {
@@ -811,5 +905,13 @@
 
     init();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d2c7efaf4e7457a',t:'MTc3MTkxMDI0MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d2c7efaf4e7457a',t:'MTc3MTkxMDI0MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+ <script>
+function togglePanduan() {
+  const panduan = document.getElementById("panduanPengisian");
+  panduan.classList.toggle("hidden");
+}
+</script>
+
+</body>
 </html>
